@@ -11,7 +11,7 @@ import {
   InputAdornment,
   IconButton,
   Alert,
-  Collapse,
+  CircularProgress,
 } from '@mui/material';
 import {
   LockOutlined as LockOutlinedIcon,
@@ -19,13 +19,16 @@ import {
   VisibilityOff,
   Close as CloseIcon,
 } from '@mui/icons-material';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: 'admin@example.com',
-    password: 'password',
+    email: '',
+    password: '',
   });
   const navigate = useNavigate();
 
@@ -37,25 +40,73 @@ export default function LoginPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    // Simple validation
     if (!formData.email || !formData.password) {
       setError('Please enter both email and password');
       return;
     }
 
-    // In a real app, you would make an API call here
-    // For demo purposes, we'll just check for any non-empty values
-    if (formData.email && formData.password) {
-      // Store authentication state
+    try {
+      setLoading(true);
+      
+      // Query Firestore for admin with matching email
+      const adminsRef = collection(db, 'admins');
+      const q = query(adminsRef, where('email', '==', formData.email));
+      const querySnapshot = await getDocs(q);
+      
+      // Check if admin exists
+      if (querySnapshot.empty) {
+        throw new Error('Invalid email or password');
+      }
+      
+      // Get the first matching admin document
+      const adminDoc = querySnapshot.docs[0];
+      const adminData = adminDoc.data();
+      
+      // Verify password (plain text comparison - NOT SECURE for production!)
+      if (adminData.password !== formData.password) {
+        throw new Error('Invalid email or password');
+      }
+      
+      // Check if user has admin role
+      if (adminData.role !== 'admin') {
+        throw new Error('You do not have admin privileges');
+      }
+      
+      // Store authentication state and user data
       localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('user', JSON.stringify({
+        id: adminDoc.id,
+        email: adminData.email,
+        role: adminData.role
+      }));
+      
+      console.log('✅ Login successful!');
+      
       // Redirect to dashboard
       navigate('/dashboard');
-    } else {
-      setError('Invalid email or password');
+      
+    } catch (err: any) {
+      console.error('Login error:', err);
+      
+      let errorMessage = 'Failed to sign in. Please try again.';
+      
+      if (err.message === 'Invalid email or password') {
+        errorMessage = 'Invalid email or password';
+      } else if (err.message === 'You do not have admin privileges') {
+        errorMessage = 'You do not have admin privileges';
+      } else if (err.code === 'permission-denied') {
+        errorMessage = 'Access denied. Please check Firestore security rules.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,8 +139,9 @@ export default function LoginPage() {
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Sign in
+            Admin Login
           </Typography>
+          
           <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1, width: '100%' }}>
             <TextField
               margin="normal"
@@ -102,6 +154,7 @@ export default function LoginPage() {
               autoFocus
               value={formData.email}
               onChange={handleChange}
+              disabled={loading}
             />
             <TextField
               margin="normal"
@@ -114,6 +167,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
+              disabled={loading}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -121,6 +175,7 @@ export default function LoginPage() {
                       aria-label="toggle password visibility"
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
+                      disabled={loading}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -133,6 +188,7 @@ export default function LoginPage() {
               fullWidth
               variant="contained"
               size="large"
+              disabled={loading}
               sx={{ 
                 mt: 2, 
                 mb: 2, 
@@ -147,13 +203,27 @@ export default function LoginPage() {
                 },
               }}
             >
-              Sign In
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
             </Button>
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="textSecondary">
-                Demo credentials: admin@example.com / password
-              </Typography>
-            </Box>
+            
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ mt: 2, width: '100%' }}
+                action={
+                  <IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={handleCloseError}
+                  >
+                    <CloseIcon fontSize="inherit" />
+                  </IconButton>
+                }
+              >
+                {error}
+              </Alert>
+            )}
           </Box>
         </Paper>
       </Box>

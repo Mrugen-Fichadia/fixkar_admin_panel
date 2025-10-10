@@ -51,6 +51,13 @@ export default function UserMaster() {
     role: 'Customer',
     isActive: true
   });
+
+  const userRoles = [
+    { value: 'Super Admin', label: 'Super Admin' },
+    { value: 'Manager', label: 'Manager' },
+    { value: 'Support Staff', label: 'Support Staff' },
+    { value: 'Customer', label: 'Customer' }
+  ];
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ 
     open: false, 
     message: '', 
@@ -115,7 +122,8 @@ export default function UserMaster() {
     const { name, value, type } = e.target as HTMLInputElement;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+              name === 'isActive' ? value === 'true' : value
     }));
   };
 
@@ -197,18 +205,10 @@ export default function UserMaster() {
                           </Box>
                         </TableCell>
                         <TableCell>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEditClick(user)}
-                            color="primary"
-                          >
+                          <IconButton onClick={() => handleEditClick(user)} size="small">
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleDeleteUser(user.id || '')}
-                            color="error"
-                          >
+                          <IconButton onClick={() => handleDeleteUser(user.id || '')} size="small" color="error">
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </TableCell>
@@ -267,6 +267,21 @@ export default function UserMaster() {
               multiline
               rows={3}
             />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Role</InputLabel>
+              <Select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                label="Role"
+              >
+                {userRoles.map((role) => (
+                  <MenuItem key={role.value} value={role.value}>
+                    {role.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl fullWidth margin="normal">
               <InputLabel>Status</InputLabel>
               <Select

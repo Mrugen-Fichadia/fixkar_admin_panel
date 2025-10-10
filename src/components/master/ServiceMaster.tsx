@@ -343,18 +343,7 @@ export default function ServiceMaster() {
                           </Box>
                         </TableCell>
                         <TableCell>Subcategory</TableCell>
-                        <TableCell>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={sub.status === 'Active'}
-                                onChange={() => handleStatusToggle(sub.id!)}
-                                color="primary"
-                              />
-                            }
-                            label={sub.status}
-                          />
-                        </TableCell>
+                        <TableCell>-</TableCell>
                         <TableCell>
                           {new Date(sub.createdAt || '').toLocaleDateString()}
                         </TableCell>

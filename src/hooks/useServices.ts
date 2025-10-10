@@ -38,39 +38,48 @@ export const useServices = () => {
         const data = docSnapshot.data();
         const docId = docSnapshot.id;
         
-        // Each document contains category fields where:
-        // - Field name = Category name (e.g., "TV")
-        // - Field value = Array of subcategory names
+        // Track which fields we've processed to avoid duplicates
+        const processedFields = new Set<string>();
         
+        // First pass: process all category fields (array fields)
         Object.keys(data).forEach(fieldName => {
+          // Skip status fields in the first pass
+          if (fieldName.endsWith('_status')) return;
+          
           const fieldValue = data[fieldName];
           
-          // Check if this field is an array (subcategories)
+          // Only process array fields (categories with subcategories)
           if (Array.isArray(fieldValue)) {
+            processedFields.add(fieldName);
+            
+            // Get the status for this category (default to 'Active' if not set)
+            const statusField = `${fieldName}_status`;
+            const status = data[statusField] || 'Active';
+            
             const category: ServiceCategory = {
-              id: `${docId}_${fieldName}`, // Unique ID combining doc ID and field name
+              id: `${docId}_${fieldName}`,
               name: fieldName,
-              status: 'Active',
+              status: status,
               createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date().toISOString(),
+              subCategories: []
             };
             
-            // Process subcategories from the array
+            // Process subcategories
             category.subCategories = fieldValue.map((subName: string, index: number) => ({
               id: `${docId}_${fieldName}_${index}`,
               name: subName,
-              status: 'Active',
+              status: 'Active', // Subcategory status is always active for now
               parentId: `${docId}_${fieldName}`,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
-            } as ServiceSubCategory));
+            }));
             
             processedCategories.push(category);
           }
         });
       });
       
-      console.log('Processed categories with subcategories:', processedCategories);
       setCategories(processedCategories);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch categories';
@@ -94,7 +103,7 @@ export const useServices = () => {
         }
         
         const docId = parts[0];
-        const categoryName = parts.slice(1).join('_'); // Handle category names with underscores
+        const categoryName = parts.slice(1).join('_');
         
         const docRef = doc(db, 'Services', docId);
         const docSnapshot = await getDoc(docRef);
@@ -120,37 +129,15 @@ export const useServices = () => {
         await fetchCategories();
         return { success: true, id: `${docId}_${categoryName}_${existingSubcategories.length}` };
       } else {
-        // Adding a main category
-        // Check if we have any existing document
-        const querySnapshot = await getDocs(categoriesRef);
+        // Create a new document for each main category
+        const docRef = await addDoc(categoriesRef, {
+          [rest.name.trim()]: [],
+          [`${rest.name.trim()}_status`]: 'Active' // Initialize status
+        });
         
-        if (querySnapshot.empty) {
-          // Create first document
-          const docRef = await addDoc(categoriesRef, {
-            [rest.name.trim()]: []
-          });
-          console.log('First category added with ID: ', docRef.id);
-          await fetchCategories();
-          return { success: true, id: `${docRef.id}_${rest.name.trim()}` };
-        } else {
-          // Use the first document and add new field
-          const firstDoc = querySnapshot.docs[0];
-          const docId = firstDoc.id;
-          const docData = firstDoc.data();
-          
-          // Check if category already exists
-          if (rest.name.trim() in docData) {
-            throw new Error('Category already exists');
-          }
-          
-          await updateDoc(doc(db, 'Services', docId), {
-            [rest.name.trim()]: []
-          });
-          
-          console.log('Category added to document:', docId);
-          await fetchCategories();
-          return { success: true, id: `${docId}_${rest.name.trim()}` };
-        }
+        console.log('New category document created with ID:', docRef.id);
+        await fetchCategories();
+        return { success: true, id: `${docRef.id}_${rest.name.trim()}` };
       }
     } catch (err) {
       console.error('Error adding category:', err);
@@ -169,7 +156,7 @@ export const useServices = () => {
         // Subcategory update: "docId_categoryName_index"
         const docId = parts[0];
         const indexStr = parts[parts.length - 1];
-        const categoryName = parts.slice(1, -1).join('_'); // Handle category names with underscores
+        const categoryName = parts.slice(1, -1).join('_');
         const index = parseInt(indexStr, 10);
         
         if (isNaN(index)) {
@@ -202,23 +189,29 @@ export const useServices = () => {
           subcategories[index] = newName;
         }
         
-        await updateDoc(docRef, {
-          [categoryName]: subcategories
-        });
+        // Update the document with any changes
+        const updateData: Record<string, any> = { [categoryName]: subcategories };
+        
+        // Handle status updates
+        if (updates.status) {
+          updateData[`${categoryName}_status`] = updates.status;
+        }
+        
+        await updateDoc(docRef, updateData);
       } else if (parts.length >= 2) {
         // Category update: "docId_categoryName"
         const docId = parts[0];
         const oldCategoryName = parts.slice(1).join('_'); // Handle category names with underscores
+        const docRef = doc(db, 'Services', docId);
+        const docSnapshot = await getDoc(docRef);
+        
+        if (!docSnapshot.exists()) {
+          throw new Error('Document not found');
+        }
+        
+        const docData = docSnapshot.data();
         
         if (updates.name && updates.name !== oldCategoryName) {
-          const docRef = doc(db, 'Services', docId);
-          const docSnapshot = await getDoc(docRef);
-          
-          if (!docSnapshot.exists()) {
-            throw new Error('Document not found');
-          }
-          
-          const docData = docSnapshot.data();
           const newCategoryName = updates.name.trim();
           
           // Check if new category name already exists
@@ -231,7 +224,20 @@ export const useServices = () => {
           // Create new field with new name and delete old field
           await updateDoc(docRef, {
             [newCategoryName]: subcategories,
-            [oldCategoryName]: deleteField()
+            [oldCategoryName]: deleteField(),
+            // Transfer status to new field name if it exists
+            [`${newCategoryName}_status`]: docData[`${oldCategoryName}_status`] || 'Active'
+          });
+          
+          // Remove old status field
+          await updateDoc(docRef, {
+            [`${oldCategoryName}_status`]: deleteField()
+          });
+        } else if (updates.status) {
+          // Only update status if no name change
+          const statusField = `${oldCategoryName}_status`;
+          await updateDoc(docRef, {
+            [statusField]: updates.status
           });
         }
       }

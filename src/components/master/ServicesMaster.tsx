@@ -31,20 +31,20 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
-import { useServices, type Service, type SubService } from '../../hooks/useServices';
+import { useServices, type ServiceCategory, type ServiceSubCategory } from '../../hooks/useServices';
 
 export default function ServicesMaster() {
   const { 
-    services, 
+    categories, 
     loading, 
     error,
-    addService,
-    updateService,
-    deleteService,
-    addSubService,
-    updateSubService,
-    deleteSubService
+    addCategory,
+    updateCategory,
+    deleteCategory
   } = useServices();
+  
+  // Alias services to categories for backward compatibility
+  const services = categories;
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -68,8 +68,7 @@ export default function ServicesMaster() {
 
   // Filter services based on search term
   const filteredServices = services.filter(service => 
-    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.category.toLowerCase().includes(searchTerm.toLowerCase())
+    service.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Pagination
@@ -110,16 +109,39 @@ export default function ServicesMaster() {
     const { service, isEdit } = serviceDialog;
     if (!service) return;
 
-    if (isEdit && service.id) {
-      await updateService(service.id, service);
-    } else {
-      await addService(service as Omit<Service, 'id'>);
+    try {
+      if (isEdit && service.id) {
+        await updateCategory(service.id, { 
+          name: service.name,
+          status: service.status || 'Active'
+        });
+      } else {
+        await addCategory({ 
+          name: service.name,
+          status: service.status || 'Active'
+        });
+      }
+      
+      setServiceDialog({ open: false, service: null, isEdit: false });
+    } catch (error) {
+      console.error('Error saving service:', error);
+      // You might want to show an error message to the user here
     }
-    
-    setServiceDialog({ open: false, service: null, isEdit: false });
+  };
+
+  // Add this function to handle status toggle
+  const handleStatusToggle = async (id: string, currentStatus: 'Active' | 'Inactive' = 'Active') => {
+    try {
+      const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+      await updateCategory(id, { status: newStatus });
+    } catch (error) {
+      console.error('Error toggling status:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   // SubService Handlers
+{{ ... }}
   const handleAddSubService = (serviceId: string) => {
     setSubServiceDialog({
       open: true,
@@ -147,13 +169,26 @@ export default function ServicesMaster() {
     const { serviceId, subService, isEdit } = subServiceDialog;
     if (!subService) return;
 
-    if (isEdit && subService.id) {
-      await updateSubService(serviceId, subService.id, subService);
-    } else {
-      await addSubService(serviceId, subService as Omit<SubService, 'id'>);
+    try {
+      if (isEdit && subService.id) {
+        await updateCategory(subService.id, { 
+          name: subService.name,
+          status: subService.status || 'Active',
+          parentId: serviceId
+        });
+      } else if (serviceId) {
+        await addCategory({ 
+          name: subService.name, 
+          status: subService.status || 'Active',
+          parentId: serviceId
+        });
+      }
+      
+      setSubServiceDialog({ open: false, serviceId: '', subService: null, isEdit: false });
+    } catch (error) {
+      console.error('Error saving subservice:', error);
+      // You might want to show an error message to the user here
     }
-    
-    setSubServiceDialog({ open: false, serviceId: '', subService: null, isEdit: false });
   };
 
   // Toggle service expansion
@@ -253,15 +288,24 @@ export default function ServicesMaster() {
                           </IconButton>
                         </TableCell>
                         <TableCell>{service.name}</TableCell>
-                        <TableCell>{service.category}</TableCell>
-                        <TableCell>₹{service.price}</TableCell>
-                        <TableCell>{service.duration}</TableCell>
+                        <TableCell>{service.subCategories?.length || 0} subcategories</TableCell>
+                        <TableCell>-</TableCell>
+                        <TableCell>-</TableCell>
                         <TableCell>
-                          <Chip 
-                            label={service.status}
-                            color={service.status === 'Active' ? 'success' : 'default'}
-                            size="small"
-                          />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Switch
+                              checked={service.status === 'Active'}
+                              onChange={() => handleStatusToggle(service.id || '', service.status || 'Active')}
+                              color="primary"
+                              size="small"
+                            />
+                            <Chip 
+                              label={service.status}
+                              color={service.status === 'Active' ? 'success' : 'default'}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Box>
                         </TableCell>
                         <TableCell>{formatDate(service.createdAt)}</TableCell>
                         <TableCell>
@@ -303,7 +347,7 @@ export default function ServicesMaster() {
                                 </Button>
                               </Box>
                               
-                              {service.subServices && service.subServices.length > 0 ? (
+                              {service.subCategories && service.subCategories.length > 0 ? (
                                 <Table size="small">
                                   <TableHead>
                                     <TableRow>
@@ -316,17 +360,26 @@ export default function ServicesMaster() {
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {service.subServices.map((sub) => (
+                                    {service.subCategories.map((sub) => (
                                       <TableRow key={sub.id}>
                                         <TableCell>{sub.name}</TableCell>
-                                        <TableCell>₹{sub.price}</TableCell>
-                                        <TableCell>{sub.duration}</TableCell>
+                                        <TableCell>-</TableCell>
+                                        <TableCell>-</TableCell>
                                         <TableCell>
-                                          <Chip 
-                                            label={sub.status}
-                                            color={sub.status === 'Active' ? 'success' : 'default'}
-                                            size="small"
-                                          />
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Switch
+                                              checked={sub.status === 'Active'}
+                                              onChange={() => handleStatusToggle(sub.id || '', sub.status || 'Active')}
+                                              color="primary"
+                                              size="small"
+                                            />
+                                            <Chip 
+                                              label={sub.status}
+                                              color={sub.status === 'Active' ? 'success' : 'default'}
+                                              size="small"
+                                              variant="outlined"
+                                            />
+                                          </Box>
                                         </TableCell>
                                         <TableCell>{formatDate(sub.createdAt)}</TableCell>
                                         <TableCell>
@@ -334,7 +387,7 @@ export default function ServicesMaster() {
                                             <Tooltip title="Edit Subservice">
                                               <IconButton 
                                                 size="small" 
-                                                onClick={() => service.id && handleEditSubService(service.id, sub as SubService)}
+                                                onClick={() => service.id && handleEditSubService(service.id, sub as ServiceSubCategory)}
                                               >
                                                 <EditIcon fontSize="small" />
                                               </IconButton>
@@ -343,7 +396,7 @@ export default function ServicesMaster() {
                                               <IconButton 
                                                 size="small" 
                                                 color="error"
-                                                onClick={() => service.id && sub.id && deleteSubService(service.id, sub.id)}
+                                                onClick={() => sub.id && deleteCategory(sub.id)}
                                               >
                                                 <DeleteIcon fontSize="small" />
                                               </IconButton>
