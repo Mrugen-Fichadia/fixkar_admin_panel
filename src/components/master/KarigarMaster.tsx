@@ -91,7 +91,10 @@ export default function KarigarMaster() {
         ) : error ? (
           <Alert severity="error">{error}</Alert>
         ) : (
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{
+            maxHeight: 'calc(100vh - 180px)',
+            overflowY: 'auto',
+          }}>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>

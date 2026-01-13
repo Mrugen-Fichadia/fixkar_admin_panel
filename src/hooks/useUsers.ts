@@ -39,6 +39,8 @@ export interface User {
   backIdImageUrl?: string;
   range?: number;
   area?: string;
+  documentVerificationStatus?: string;
+  bankDetailsVerificationStatus?: string;
 }
 
 export const useUsers = () => {

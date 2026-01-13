@@ -97,6 +97,11 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
   const [subServices, setSubServices] = useState<Record<string, SubServiceData>>(
     workerData.subServices || {}
   );
+  const [docStatus, setDocStatus] = useState(workerData.documentVerificationStatus || 'pending');
+  const [bankStatus, setBankStatus] = useState(workerData.bankDetailsVerificationStatus || 'pending');
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (workerData) {
@@ -104,6 +109,48 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
       setSubServices(workerData.subServices || {});
     }
   }, [workerData]);
+  useEffect(() => {
+    if (workerData?.documentVerificationStatus) {
+      setDocStatus(workerData.documentVerificationStatus as any);
+    }
+    if (workerData?.bankDetailsVerificationStatus) {
+      setBankStatus(workerData.bankDetailsVerificationStatus as any);
+    }
+  }, [workerData]);
+
+  const updateDocumentStatus = async (
+    status: 'verified' | 'rejected'
+  ) => {
+    try {
+      setLoading(true);
+      await updateUser(workerId, {
+        documentVerificationStatus: status,
+      });
+      setDocStatus(status);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update document status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateBankStatus = async (
+    status: 'verified' | 'rejected'
+  ) => {
+    try {
+      setLoading(true);
+      await updateUser(workerId, {
+        bankDetailsVerificationStatus: status,
+      });
+      setBankStatus(status);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update bank verification status');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleServiceChange = (event: SelectChangeEvent) => {
     setSelectedService(event.target.value);
@@ -266,6 +313,161 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
           </Table>
         </TableContainer>
       )}
+
+      <Box sx={{ mt: 5 }}>
+        <Typography variant="h6" gutterBottom>
+          Document Verification
+        </Typography>
+
+        <Chip
+          label={`Status: ${docStatus.toUpperCase()}`}
+          color={
+            docStatus === 'verified'
+              ? 'success'
+              : docStatus === 'rejected'
+              ? 'error'
+              : 'warning'
+          }
+          sx={{ mb: 2 }}
+        />
+
+        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {/* FRONT ID */}
+          {workerData.frontIdImageUrl && (
+            <Paper sx={{ p: 2, width: 260 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Front ID
+              </Typography>
+              <Box
+                component="img"
+                src={workerData.frontIdImageUrl}
+                alt="Front ID"
+                sx={{
+                  width: '100%',
+                  height: 160,
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                  borderRadius: 1,
+                }}
+                onClick={() => {
+                  if (workerData.frontIdImageUrl) {
+                    setPreviewImage(workerData.frontIdImageUrl);
+                  }
+                }}
+              />
+            </Paper>
+          )}
+
+          {/* BACK ID */}
+          {workerData.backIdImageUrl && (
+            <Paper sx={{ p: 2, width: 260 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Back ID
+              </Typography>
+              <Box
+                component="img"
+                src={workerData.backIdImageUrl}
+                alt="Back ID"
+                sx={{
+                  width: '100%',
+                  height: 160,
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                  borderRadius: 1,
+                }}
+                onClick={() => {
+                  if (workerData.backIdImageUrl) {
+                    setPreviewImage(workerData.backIdImageUrl);
+                  }
+                }}
+              />
+            </Paper>
+          )}
+        </Box>
+
+        {/* ACTION BUTTONS */}
+        <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            color="success"
+            disabled={docStatus === 'verified' || loading}
+            onClick={() => updateDocumentStatus('verified')}
+          >
+            Accept
+          </Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            disabled={docStatus === 'rejected' || loading}
+            onClick={() => updateDocumentStatus('rejected')}
+          >
+            Reject
+          </Button>
+        </Box>
+      </Box>
+
+      <Box sx={{ mt: 6 }}>
+        <Typography variant="h6" gutterBottom>
+          Bank Details Verification
+        </Typography>
+
+        <Chip
+          label={`Status: ${bankStatus.toUpperCase()}`}
+          color={
+            bankStatus === 'verified'
+              ? 'success'
+              : bankStatus === 'rejected'
+              ? 'error'
+              : 'warning'
+          }
+          sx={{ mb: 2 }}
+        />
+
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            color="success"
+            disabled={bankStatus === 'verified' || loading}
+            onClick={() => updateBankStatus('verified')}
+          >
+            Verify
+          </Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            disabled={bankStatus === 'rejected' || loading}
+            onClick={() => updateBankStatus('rejected')}
+          >
+            Reject
+          </Button>
+        </Box>
+      </Box>
+
+
+      <Dialog
+        open={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Document Preview</DialogTitle>
+        <DialogContent>
+          {previewImage && (
+            <Box
+              component="img"
+              src={previewImage}
+              alt="Preview"
+              sx={{ width: '100%', borderRadius: 1 }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPreviewImage(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
 
       {/* Add Service Dialog */}
       <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="sm" fullWidth>
