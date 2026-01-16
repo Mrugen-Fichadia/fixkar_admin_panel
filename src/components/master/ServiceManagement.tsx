@@ -424,6 +424,45 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
           sx={{ mb: 2 }}
         />
 
+        <Box sx={{ mt: 2, mb: 3 }}>
+          <Paper
+            sx={{
+              p: 2,
+              maxWidth: 500,
+              border: '2px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+            }}
+          >
+            <Typography variant="subtitle2" gutterBottom>
+              Bank Information
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '140px 1fr',
+                rowGap: 1,
+              }}
+            >
+              <Typography color="text.secondary">Beneficiary</Typography>
+              <Typography fontWeight="medium">
+                {workerData.beneficiaryName || 'N/A'}
+              </Typography>
+
+              <Typography color="text.secondary">Account No.</Typography>
+              <Typography fontWeight="medium">
+                {workerData.bankAccountNumber}
+              </Typography>
+
+              <Typography color="text.secondary">IFSC Code</Typography>
+              <Typography fontWeight="medium">
+                {workerData.ifscCode || 'N/A'}
+              </Typography>
+            </Box>
+          </Paper>
+        </Box>
+
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="contained"

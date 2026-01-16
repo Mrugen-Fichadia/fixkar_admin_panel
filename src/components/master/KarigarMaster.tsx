@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { useState } from 'react';
+import { Avatar } from '@mui/material';
 import ServiceManagement from './ServiceManagement';
 
 function WorkerRow({ worker }: { worker: User }) {
@@ -33,6 +34,20 @@ function WorkerRow({ worker }: { worker: User }) {
           >
             {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
           </IconButton>
+        </TableCell>
+        <TableCell>
+          <Avatar
+            src={worker.selfieImageUrl}
+            alt={worker.name}
+            sx={{
+              width: 40,
+              height: 40,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            {worker.name?.[0]}
+          </Avatar>
         </TableCell>
         <TableCell>{worker.name}</TableCell>
         <TableCell>{worker.email}</TableCell>
@@ -99,6 +114,7 @@ export default function KarigarMaster() {
               <TableHead>
                 <TableRow>
                   <TableCell></TableCell>
+                  <TableCell>Photo</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Phone</TableCell>
