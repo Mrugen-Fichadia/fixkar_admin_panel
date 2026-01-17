@@ -21,11 +21,13 @@ import {
   Chip,
   IconButton,
   MenuItem,
+  Tooltip,
   Select
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useUsers } from '../../hooks/useUsers';
 import type { User } from '../../hooks/useUsers';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 // Define service and subservice types based on the data structure
 interface SubServiceData {
@@ -238,6 +240,11 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
     service => !services.includes(service)
   );
 
+  const copyToClipboard = (text?: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+  };
+
   return (
     <Box sx={{ width: '100%', mt: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -443,6 +450,7 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
                 display: 'grid',
                 gridTemplateColumns: '140px 1fr',
                 rowGap: 1,
+                alignItems: 'center',
               }}
             >
               <Typography color="text.secondary">Beneficiary</Typography>
@@ -451,14 +459,38 @@ export default function ServiceManagement({ workerId, workerData }: ServiceManag
               </Typography>
 
               <Typography color="text.secondary">Account No.</Typography>
-              <Typography fontWeight="medium">
-                {workerData.bankAccountNumber}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography fontWeight="medium">
+                  {workerData.bankAccountNumber || 'N/A'}
+                </Typography>
+                {workerData.bankAccountNumber && (
+                  <Tooltip title="Copy Account Number">
+                    <IconButton
+                      size="small"
+                      onClick={() => copyToClipboard(workerData.bankAccountNumber)}
+                    >
+                      <ContentCopyIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
 
               <Typography color="text.secondary">IFSC Code</Typography>
-              <Typography fontWeight="medium">
-                {workerData.ifscCode || 'N/A'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography fontWeight="medium">
+                  {workerData.ifscCode || 'N/A'}
+                </Typography>
+                {workerData.ifscCode && (
+                  <Tooltip title="Copy IFSC Code">
+                    <IconButton
+                      size="small"
+                      onClick={() => copyToClipboard(workerData.ifscCode)}
+                    >
+                      <ContentCopyIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             </Box>
           </Paper>
         </Box>
