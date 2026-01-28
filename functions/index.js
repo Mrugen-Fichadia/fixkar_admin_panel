@@ -166,7 +166,7 @@ exports.onWorkerVerificationStatusChange = onDocumentUpdated(
           status === "verified"
             ? "Your documents have been successfully verified."
             : "Your documents were rejected. Please upload valid documents.",
-        type: "DOCUMENT_STATUS",
+        type: "document",
       });
     }
 
@@ -186,7 +186,7 @@ exports.onWorkerVerificationStatusChange = onDocumentUpdated(
           status === "verified"
             ? "Your bank details have been verified successfully."
             : "Your bank details were rejected. Please re-check and update.",
-        type: "BANK_STATUS",
+        type: "bank",
       });
     }
 
