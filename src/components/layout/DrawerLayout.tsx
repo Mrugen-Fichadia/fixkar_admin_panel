@@ -25,6 +25,8 @@ import {
   Settings as SettingsIcon,
   Map as MapIcon,
   Assessment as ReportsIcon,
+  Notifications as NotificationsIcon,
+  Block as BlockIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate } from 'react-router-dom';
 
@@ -175,6 +177,8 @@ const menuItems = [
   { text: 'User Master', icon: <PeopleIcon />, path: '/users' },
   { text: 'Karigar Master', icon: <BuildIcon />, path: '/karigars' },
   { text: 'Service Master', icon: <SettingsIcon />, path: '/services' },
+  { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
+  { text: 'Blocked Users', icon: <BlockIcon />, path: '/blocked-users' },
   { text: 'Heat Map', icon: <MapIcon />, path: '/heatmap' },
   { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
 ];

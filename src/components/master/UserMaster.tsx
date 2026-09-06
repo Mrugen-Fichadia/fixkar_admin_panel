@@ -23,9 +23,15 @@ import {
   FormControl,
   InputLabel,
   Select,
+  InputAdornment,
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material/Select';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  Edit as EditIcon, 
+  Delete as DeleteIcon, 
+  Search as SearchIcon, 
+  Clear as ClearIcon 
+} from '@mui/icons-material';
 import { useUsers } from '../../hooks/useUsers';
 import type { User } from '../../hooks/useUsers';
 
@@ -37,9 +43,23 @@ export default function UserMaster() {
     updateUser, 
     deleteUser 
   } = useUsers();
+
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Filter users to only show Customers
   const customerUsers = users.filter(user => user.role === 'Customer');
+  
+  // Filter customers by User ID or Name
+  const filteredCustomers = customerUsers.filter(user => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+    const userIdMatch = Boolean(
+      (user.id && user.id.toLowerCase().includes(query)) ||
+      (user.uid && user.uid.toLowerCase().includes(query))
+    );
+    const nameMatch = Boolean(user.name && user.name.toLowerCase().includes(query));
+    return userIdMatch || nameMatch;
+  });
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -150,82 +170,103 @@ export default function UserMaster() {
         <Typography variant="h5">Customer Management</Typography>
       </Box>
       
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          size="small"
+          variant="outlined"
+          placeholder="Search by User ID or Name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ width: 350, maxWidth: '100%' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchTerm('')}>
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+      </Box>
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, minHeight: '300px' }}>
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Box sx={{ p: 2, backgroundColor: '#ffebee', borderRadius: 1 }}>
-          <Typography color="error">{error}</Typography>
+        <Box sx={{ p: 2 }}>
+          <Alert severity="error">{error}</Alert>
         </Box>
       ) : (
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Alert severity="error">{error}</Alert>
-          ) : (
-            <TableContainer component={Paper}>
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Phone</TableCell>
-                    <TableCell>Address</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Actions</TableCell>
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            maxHeight: 'calc(100vh - 250px)', 
+            overflowY: 'auto',
+          }}
+        >
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Phone</TableCell>
+                <TableCell>Address</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map((user) => (
+                  <TableRow key={user.uid || user.id}>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone || 'N/A'}</TableCell>
+                    <TableCell sx={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} 
+                              title={user.address}>
+                      {user.address || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ 
+                        display: 'inline-block', 
+                        px: 1, 
+                        py: 0.5, 
+                        borderRadius: 1,
+                        backgroundColor: user.isActive ? 'success.light' : 'grey.300',
+                        color: user.isActive ? 'success.contrastText' : 'text.secondary',
+                        fontSize: '0.75rem',
+                        fontWeight: 'medium'
+                      }}>
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <IconButton onClick={() => handleEditClick(user)} size="small">
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteUser(user.id || '')} size="small" color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {customerUsers.length > 0 ? (
-                    customerUsers.map((user) => (
-                      <TableRow key={user.uid || user.id}>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.phone || 'N/A'}</TableCell>
-                        <TableCell sx={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} 
-                                  title={user.address}>
-                          {user.address || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ 
-                            display: 'inline-block', 
-                            px: 1, 
-                            py: 0.5, 
-                            borderRadius: 1,
-                            backgroundColor: user.isActive ? 'success.light' : 'grey.300',
-                            color: user.isActive ? 'success.contrastText' : 'text.secondary',
-                            fontSize: '0.75rem',
-                            fontWeight: 'medium'
-                          }}>
-                            {user.isActive ? 'Active' : 'Inactive'}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEditClick(user)} size="small">
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton onClick={() => handleDeleteUser(user.id || '')} size="small" color="error">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        No customers found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Box>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    {searchTerm ? 'No matching customers found' : 'No customers found'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <Dialog open={isAddModalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth>

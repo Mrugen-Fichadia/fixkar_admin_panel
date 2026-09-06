@@ -1,7 +1,73 @@
-const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
+
+/* ---------------- FCM PUSH NOTIFICATION ON NOTIFICATION CREATION ---------------- */
+exports.onNotificationCreated = onDocumentCreated(
+  "users/{userId}/notifications/{notificationId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const notifData = snap.data();
+    const userId = event.params.userId;
+
+    if (!notifData || !notifData.title || !notifData.message) return;
+
+    // Fetch user document to get fcmToken
+    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+    if (!userDoc.exists) return;
+
+    const fcmToken = userDoc.data()?.fcmToken || notifData.fcmToken;
+    if (!fcmToken) {
+      console.log(`No FCM token found for user ${userId}`);
+      return;
+    }
+
+    try {
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: notifData.title,
+          body: notifData.message,
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "default",
+            sound: "default",
+            priority: "high",
+            defaultSound: true,
+            defaultVibrateTimings: true,
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+              contentAvailable: true,
+            },
+          },
+        },
+        data: {
+          title: String(notifData.title || ""),
+          body: String(notifData.message || ""),
+          message: String(notifData.message || ""),
+          type: String(notifData.type || "warning"),
+          violationReason: String(notifData.violationReason || ""),
+          blockType: String(notifData.blockType || ""),
+          executionTime: String(notifData.executionTime || ""),
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+      });
+      console.log(`FCM push notification sent successfully to user ${userId} (Token: ${fcmToken})`);
+    } catch (err) {
+      console.error(`Error sending FCM push notification to user ${userId}:`, err);
+    }
+  }
+);
 
 exports.onWorkerVerificationStatusChange = onDocumentUpdated(
   "users/{userId}",

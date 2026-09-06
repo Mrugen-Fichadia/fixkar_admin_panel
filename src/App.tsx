@@ -5,6 +5,8 @@ import LoginPage from './components/pages/LoginPage';
 import UserMaster from './components/master/UserMaster';
 import KarigarMaster from './components/master/KarigarMaster';
 import ServiceMaster from './components/master/ServiceMaster';
+import NotificationMaster from './components/master/NotificationMaster';
+import BlockedUsersMaster from './components/master/BlockedUsersMaster';
 import HeatMap from './components/master/HeatMap';
 import Reports from './components/master/Reports';
 import { CircularProgress, Box } from '@mui/material';
@@ -79,6 +81,8 @@ function App() {
         <Route path="users" element={<UserMaster />} />
         <Route path="karigars" element={<KarigarMaster />} />
         <Route path="services" element={<ServiceMaster />} />
+        <Route path="notifications" element={<NotificationMaster />} />
+        <Route path="blocked-users" element={<BlockedUsersMaster />} />
         <Route path="heatmap" element={<HeatMap />} />
         <Route path="reports" element={<Reports />} />
         <Route path="*" element={<Navigate to="/users" replace />} />
