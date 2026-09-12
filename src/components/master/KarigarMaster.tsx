@@ -134,9 +134,6 @@ export default function KarigarMaster() {
 
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5">Worker Management</Typography>
-      </Box>
 
       <Box sx={{ mb: 3 }}>
         <TextField

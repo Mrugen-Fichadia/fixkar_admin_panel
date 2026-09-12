@@ -24,6 +24,7 @@ import { KeyboardArrowDown } from '@mui/icons-material';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import CloseIcon from '@mui/icons-material/Close';
+import { useHeader } from '../layout/DrawerLayout';
 
 interface AreaCount {
   area: string;
@@ -39,6 +40,7 @@ interface UserData {
 }
 
 const Reports = () => {
+  const { setHeaderActions } = useHeader();
   const [reportType, setReportType] = useState<string>('users');
   const [areaCounts, setAreaCounts] = useState<AreaCount[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -50,6 +52,30 @@ const Reports = () => {
   useEffect(() => {
     fetchReportData();
   }, [reportType]);
+
+  useEffect(() => {
+    setHeaderActions(
+      <FormControl sx={{ minWidth: 150 }} size="small">
+        <InputLabel id="report-type-label" sx={{ fontSize: '0.8rem' }}>Report Type</InputLabel>
+        <Select
+          labelId="report-type-label"
+          id="report-type"
+          value={reportType}
+          label="Report Type"
+          onChange={handleReportTypeChange}
+          sx={{
+            height: 30,
+            fontSize: '0.8rem',
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <MenuItem value="users">Users</MenuItem>
+          <MenuItem value="karigars">Karigars</MenuItem>
+        </Select>
+      </FormControl>
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, reportType]);
 
   const fetchReportData = async () => {
     try {
@@ -112,38 +138,8 @@ const Reports = () => {
   };
 
   return (
-    <Box sx={{ p: 3, height: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-          Reports
-        </Typography>
-        
-        <FormControl sx={{ minWidth: 200, position: 'absolute', right: 24 }} size="small">
-          <InputLabel id="report-type-label">Report Type</InputLabel>
-          <Select
-            labelId="report-type-label"
-            id="report-type"
-            value={reportType}
-            label="Report Type"
-            onChange={handleReportTypeChange}
-            sx={{
-              backgroundColor: 'background.paper',
-              borderRadius: 1,
-              '& .MuiOutlinedInput-notchedOutline': {
-                border: '1px solid rgba(0, 0, 0, 0.23)',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'primary.main',
-              },
-            }}
-          >
-            <MenuItem value="users">Users</MenuItem>
-            <MenuItem value="karigars">Karigars</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      <Paper sx={{ width: '100%', overflow: 'hidden', mt: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         {loading ? (
           <Box display="flex" justifyContent="center" p={4}>
             <CircularProgress />

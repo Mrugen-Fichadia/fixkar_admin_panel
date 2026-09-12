@@ -175,14 +175,7 @@ export default function NotificationMaster() {
   };
 
   return (
-    <Box sx={{ width: '100%', height: 'calc(100vh - 128px)', overflowY: 'auto', pr: 1, pb: 4 }}>
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <WarningIcon color="warning" sx={{ fontSize: 32 }} />
-        <Typography variant="h5" fontWeight={600}>
-          Warning Notifications & Account Blocking
-        </Typography>
-      </Box>
-
+    <Box sx={{ width: '100%', height: 'calc(100vh - 80px)', overflowY: 'auto', pr: 1, pb: 4 }}>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <PersonIcon color="primary" /> 1. Select Target User or Karigar

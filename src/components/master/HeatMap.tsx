@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, useTheme, CircularProgress } from '@mui/material';
+import { Box, Typography, Paper, useTheme, CircularProgress, Chip } from '@mui/material';
+import { useHeader } from '../layout/DrawerLayout';
 import L from 'leaflet';
 import 'leaflet.heat';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -175,8 +176,33 @@ const ErrorBoundary: React.FC<{children: React.ReactNode}> = ({ children }) => {
 };
 
 const HeatMap = () => {
+  const { setHeaderActions } = useHeader();
   const { users, loading: usersLoading } = useUsers();
   const { karigars, loading: karigarsLoading } = useKarigars();
+
+  useEffect(() => {
+    const userCount = users.filter(u => u.location).length;
+    const karigarCount = karigars.filter(k => k.location).length;
+    setHeaderActions(
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Chip
+          label={`${userCount} Users with GPS`}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ height: 26, fontSize: '0.75rem' }}
+        />
+        <Chip
+          label={`${karigarCount} Karigars with GPS`}
+          size="small"
+          color="secondary"
+          variant="outlined"
+          sx={{ height: 26, fontSize: '0.75rem' }}
+        />
+      </Box>
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions, users, karigars]);
   
   // Default center for the map (center of India)
   const mapCenter: [number, number] = [20.5937, 78.9629];
@@ -252,22 +278,6 @@ const HeatMap = () => {
       position: 'relative'
     }}>
       <ErrorBoundary>
-        <Box sx={{ 
-          p: 3,
-          pb: 2,
-          width: '100%',
-          backgroundColor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          zIndex: 1,
-          flexShrink: 0
-        }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>User & Karigar Locations</Typography>
-          <Typography variant="body2" color="text.secondary">
-            {users.filter(u => u.location).length} users and {karigars.filter(k => k.location).length} karigars with location data
-          </Typography>
-        </Box>
-
         <Box sx={{
           flex: 1,
           width: '100%',

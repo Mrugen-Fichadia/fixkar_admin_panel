@@ -255,13 +255,6 @@ export default function BlockedUsersMaster() {
 
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <BlockIcon color="error" sx={{ fontSize: 32 }} />
-        <Typography variant="h5" fontWeight={600}>
-          Blocked Users & Karigars
-        </Typography>
-      </Box>
-
       {/* Categories Tabs */}
       <Paper sx={{ mb: 3 }}>
         <Tabs

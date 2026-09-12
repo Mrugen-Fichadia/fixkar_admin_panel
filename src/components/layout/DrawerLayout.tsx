@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type { Theme } from '@mui/material/styles';
@@ -27,10 +27,23 @@ import {
   Assessment as ReportsIcon,
   Notifications as NotificationsIcon,
   Block as BlockIcon,
+  Work as WorkIcon,
 } from '@mui/icons-material';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 const drawerWidth = 260;
+
+export interface HeaderContextType {
+  setHeaderActions: React.Dispatch<React.SetStateAction<React.ReactNode>>;
+  setCustomTitle: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+export const HeaderContext = createContext<HeaderContextType>({
+  setHeaderActions: () => {},
+  setCustomTitle: () => {},
+});
+
+export const useHeader = () => useContext(HeaderContext);
 
 const AppBar = styled('div', {
   shouldForwardProp: (prop) => prop !== 'open',
@@ -39,12 +52,12 @@ const AppBar = styled('div', {
   top: 0,
   left: 0,
   right: 0,
-  height: '80px',
+  height: '56px',
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(0, 2),
   backgroundColor: theme.palette.background.paper,
-  boxShadow: '0 2px 10px 0 rgba(0, 0, 0, 0.08)',
+  boxShadow: '0 1px 5px 0 rgba(0, 0, 0, 0.08)',
   zIndex: theme.zIndex.drawer + 1,
   transition: theme.transitions.create(['margin'], {
     easing: theme.transitions.easing.sharp,
@@ -59,9 +72,10 @@ const AppBar = styled('div', {
     }),
   }),
   [theme.breakpoints.down('sm')]: {
-    height: '64px',
+    height: '56px',
+    padding: theme.spacing(0, 1),
     '& .MuiToolbar-root': {
-      minHeight: '64px',
+      minHeight: '56px',
     },
   },
 }));
@@ -131,16 +145,18 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: theme.spacing(0, 2),
-  minHeight: '80px',
+  minHeight: '56px',
+  height: '56px',
   background: theme.palette.primary.main,
   color: theme.palette.common.white,
   '& .MuiTypography-h6': {
     fontWeight: 600,
+    fontSize: '1rem',
     display: 'flex',
     alignItems: 'center',
     '& svg': {
       marginRight: theme.spacing(1.5),
-      fontSize: '1.8rem',
+      fontSize: '1.4rem',
     },
   },
 }));
@@ -151,9 +167,9 @@ const Main = styled('main', {
   open?: boolean;
 }>(({ theme, open }) => ({
   flexGrow: 1,
-  marginTop: '80px',
+  marginTop: '56px',
   marginLeft: 0,
-  padding: theme.spacing(3),
+  padding: theme.spacing(2.5),
   transition: theme.transitions.create(['margin', 'width'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -164,18 +180,21 @@ const Main = styled('main', {
   }),
   display: 'flex',
   flexDirection: 'column',
-  minHeight: 'calc(100vh - 80px)',
+  minHeight: 'calc(100vh - 56px)',
   backgroundColor: theme.palette.background.default,
+  boxSizing: 'border-box',
+  minWidth: 0,
   [theme.breakpoints.down('md')]: {
     marginLeft: 0,
     width: '100%',
-    padding: theme.spacing(2),
+    padding: theme.spacing(1.5),
   },
 }));
 
 const menuItems = [
   { text: 'User Master', icon: <PeopleIcon />, path: '/users' },
   { text: 'Karigar Master', icon: <BuildIcon />, path: '/karigars' },
+  { text: 'Jobs', icon: <WorkIcon />, path: '/jobs' },
   { text: 'Service Master', icon: <SettingsIcon />, path: '/services' },
   { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
   { text: 'Blocked Users', icon: <BlockIcon />, path: '/blocked-users' },
@@ -184,10 +203,32 @@ const menuItems = [
 ];
 
 export default function DrawerLayout() {
-  // Theme is used by styled components
   useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
+  const [customTitle, setCustomTitle] = useState<string | null>(null);
+
+  // Clear actions when navigating between tabs
+  useEffect(() => {
+    setHeaderActions(null);
+    setCustomTitle(null);
+  }, [location.pathname]);
+
+  const getRouteTitle = (pathname: string): string => {
+    if (pathname.startsWith('/jobs')) return 'Jobs Management';
+    if (pathname.startsWith('/users')) return 'Customer Management';
+    if (pathname.startsWith('/karigars')) return 'Worker Management';
+    if (pathname.startsWith('/services')) return 'Service Categories';
+    if (pathname.startsWith('/notifications')) return 'Warning Notifications';
+    if (pathname.startsWith('/blocked-users')) return 'Blocked Users';
+    if (pathname.startsWith('/heatmap')) return 'Heat Map';
+    if (pathname.startsWith('/reports')) return 'Reports';
+    return '';
+  };
+
+  const activeTabTitle = customTitle || getRouteTitle(location.pathname);
 
   const toggleDrawer = () => {
     setOpen(!open);
@@ -202,31 +243,70 @@ export default function DrawerLayout() {
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar open={open}>
-        <Toolbar sx={{ width: '100%', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Toolbar sx={{ width: '100%', minHeight: '56px !important', height: '56px', px: { xs: 1, sm: 2 }, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden', flex: 1 }}>
             <IconButton
               color="inherit"
               aria-label={open ? 'close drawer' : 'open drawer'}
               onClick={toggleDrawer}
               edge="start"
+              size="small"
               sx={{
-                marginRight: 2,
+                marginRight: 0.5,
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
                 },
               }}
             >
               {open ? <ChevronLeftIcon /> : <MenuIcon />}
             </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+
+            <Typography
+              variant="subtitle1"
+              noWrap
+              sx={{
+                fontWeight: 700,
+                color: 'text.secondary',
+                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                userSelect: 'none',
+              }}
+            >
               Admin Dashboard
             </Typography>
+
+            {activeTabTitle && (
+              <>
+                <Typography variant="body2" sx={{ color: 'grey.400', userSelect: 'none' }}>
+                  /
+                </Typography>
+                <Typography
+                  variant="subtitle1"
+                  noWrap
+                  sx={{
+                    fontWeight: 700,
+                    color: 'primary.main',
+                    fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                  }}
+                >
+                  {activeTabTitle}
+                </Typography>
+              </>
+            )}
+
+            {/* Injected Header Actions */}
+            {headerActions && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: { xs: 1, sm: 2 } }}>
+                {headerActions}
+              </Box>
+            )}
           </Box>
+
           <Button
             color="inherit"
-            startIcon={<LogoutIcon />}
+            size="small"
+            startIcon={<LogoutIcon fontSize="small" />}
             onClick={handleLogout}
-            sx={{ ml: 2 }}
+            sx={{ ml: 1, textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', flexShrink: 0 }}
           >
             Logout
           </Button>
@@ -247,7 +327,7 @@ export default function DrawerLayout() {
           <Typography variant="h6" sx={{ flexGrow: 1, ml: 2 }}>
             Menu
           </Typography>
-          <IconButton onClick={toggleDrawer}>
+          <IconButton onClick={toggleDrawer} sx={{ color: 'inherit' }}>
             <ChevronLeftIcon />
           </IconButton>
         </DrawerHeader>
@@ -264,9 +344,11 @@ export default function DrawerLayout() {
         </List>
       </Drawer>
       <Main open={open}>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <Outlet />
-        </Box>
+        <HeaderContext.Provider value={{ setHeaderActions, setCustomTitle }}>
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0, maxWidth: '100%' }}>
+            <Outlet context={{ setHeaderActions, setCustomTitle }} />
+          </Box>
+        </HeaderContext.Provider>
       </Main>
     </Box>
   );

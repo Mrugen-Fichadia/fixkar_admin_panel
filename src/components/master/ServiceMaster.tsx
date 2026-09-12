@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Alert,
   Box,
@@ -26,6 +26,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import type { ServiceCategory, ServiceSubCategory } from '../../hooks/useServices';
 import { useServices } from '../../hooks/useServices';
+import { useHeader } from '../layout/DrawerLayout';
 
 type CategoryFormState = {
   name: string;
@@ -39,6 +40,7 @@ type SnackbarState = {
 };
 
 export default function ServiceMaster() {
+  const { setHeaderActions } = useHeader();
   const { 
     categories = [], 
     loading = false, 
@@ -241,19 +243,24 @@ export default function ServiceMaster() {
     }
   };
 
+  useEffect(() => {
+    setHeaderActions(
+      <Button 
+        variant="contained" 
+        color="primary" 
+        size="small"
+        startIcon={<AddIcon />}
+        onClick={() => handleAddClick()}
+        sx={{ textTransform: 'none', py: 0.3, px: 1.5, height: 28, fontSize: '0.8rem' }}
+      >
+        Add Category
+      </Button>
+    );
+    return () => setHeaderActions(null);
+  }, [setHeaderActions]);
+
   return (
-    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h5" component="h1">Service Categories</Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => handleAddClick()}
-        >
-          Add Category
-        </Button>
-      </Box>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">

@@ -7,6 +7,7 @@ import KarigarMaster from './components/master/KarigarMaster';
 import ServiceMaster from './components/master/ServiceMaster';
 import NotificationMaster from './components/master/NotificationMaster';
 import BlockedUsersMaster from './components/master/BlockedUsersMaster';
+import JobMaster from './components/master/JobMaster';
 import HeatMap from './components/master/HeatMap';
 import Reports from './components/master/Reports';
 import { CircularProgress, Box } from '@mui/material';
@@ -80,6 +81,7 @@ function App() {
         <Route index element={<Navigate to="/users" replace />} />
         <Route path="users" element={<UserMaster />} />
         <Route path="karigars" element={<KarigarMaster />} />
+        <Route path="jobs" element={<JobMaster />} />
         <Route path="services" element={<ServiceMaster />} />
         <Route path="notifications" element={<NotificationMaster />} />
         <Route path="blocked-users" element={<BlockedUsersMaster />} />
