@@ -10,6 +10,7 @@ import BlockedUsersMaster from './components/master/BlockedUsersMaster';
 import JobMaster from './components/master/JobMaster';
 import HeatMap from './components/master/HeatMap';
 import Reports from './components/master/Reports';
+import HelpSupportMaster from './components/master/HelpSupportMaster';
 import { CircularProgress, Box } from '@mui/material';
 
 // A simple protected route component
@@ -87,6 +88,7 @@ function App() {
         <Route path="blocked-users" element={<BlockedUsersMaster />} />
         <Route path="heatmap" element={<HeatMap />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="help-support" element={<HelpSupportMaster />} />
         <Route path="*" element={<Navigate to="/users" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

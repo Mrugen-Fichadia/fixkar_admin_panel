@@ -28,6 +28,7 @@ import {
   Notifications as NotificationsIcon,
   Block as BlockIcon,
   Work as WorkIcon,
+  SupportAgent as SupportAgentIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -180,7 +181,8 @@ const Main = styled('main', {
   }),
   display: 'flex',
   flexDirection: 'column',
-  minHeight: 'calc(100vh - 56px)',
+  height: 'calc(100vh - 56px)',
+  overflowY: 'auto',
   backgroundColor: theme.palette.background.default,
   boxSizing: 'border-box',
   minWidth: 0,
@@ -200,6 +202,7 @@ const menuItems = [
   { text: 'Blocked Users', icon: <BlockIcon />, path: '/blocked-users' },
   { text: 'Heat Map', icon: <MapIcon />, path: '/heatmap' },
   { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
+  { text: 'Help & Support', icon: <SupportAgentIcon />, path: '/help-support' },
 ];
 
 export default function DrawerLayout() {
@@ -225,6 +228,7 @@ export default function DrawerLayout() {
     if (pathname.startsWith('/blocked-users')) return 'Blocked Users';
     if (pathname.startsWith('/heatmap')) return 'Heat Map';
     if (pathname.startsWith('/reports')) return 'Reports';
+    if (pathname.startsWith('/help-support')) return 'Help & Support Management';
     return '';
   };
 
