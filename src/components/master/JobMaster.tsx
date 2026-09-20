@@ -59,6 +59,12 @@ import {
   CurrencyRupee as CurrencyRupeeIcon,
 } from '@mui/icons-material';
 import { useJobs } from '../../hooks/useJobs';
+import { useJobCalls } from '../../hooks/useCalls';
+import {
+  PhoneInTalk as PhoneInTalkIcon,
+  Call as CallIcon,
+  Videocam as VideocamIcon,
+} from '@mui/icons-material';
 import type { JobRequest, UserSummary } from '../../hooks/useJobs';
 import { useHeader } from '../layout/DrawerLayout';
 
@@ -166,6 +172,143 @@ const getPaymentStatusConfig = (paymentStatus?: string, paymentMode?: string) =>
     color: '#ed6c02',
     bgColor: '#fff3e0',
   };
+};
+
+
+// Step 6: In-App Call Tracking & Audio Recordings Card
+const JobCallsCard: React.FC<{ jobId: string }> = ({ jobId }) => {
+  const { calls, loading, error } = useJobCalls(jobId);
+
+  const getCallStatusChip = (status?: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'connected' || s === 'ended') {
+      return <Chip label="Connected" size="small" color="success" sx={{ fontWeight: 600, height: 22, fontSize: '0.72rem' }} />;
+    }
+    if (s === 'missed') {
+      return <Chip label="Missed" size="small" color="warning" sx={{ fontWeight: 600, height: 22, fontSize: '0.72rem' }} />;
+    }
+    if (s === 'declined') {
+      return <Chip label="Declined" size="small" color="error" sx={{ fontWeight: 600, height: 22, fontSize: '0.72rem' }} />;
+    }
+    return <Chip label={status || 'Unknown'} size="small" sx={{ fontWeight: 600, height: 22, fontSize: '0.72rem' }} />;
+  };
+
+  return (
+    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+      <CardContent sx={{ py: 1.5, pb: '12px !important' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PhoneInTalkIcon color="primary" fontSize="small" />
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.5 }}>
+              IN-APP CALL TRACKING & AUDIO RECORDINGS (STEP 6)
+            </Typography>
+          </Box>
+          <Chip
+            label={`${calls.length} Call${calls.length === 1 ? '' : 's'}`}
+            size="small"
+            color={calls.length > 0 ? 'primary' : 'default'}
+            sx={{ fontWeight: 600, height: 20, fontSize: '0.7rem' }}
+          />
+        </Box>
+        <Divider sx={{ mb: 1.5 }} />
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ py: 0.5 }}>{error}</Alert>
+        ) : calls.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            No in-app calls recorded for this Job ID.
+          </Typography>
+        ) : (
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5, overflowX: 'auto' }}>
+            <Table size="small">
+              <TableHead sx={{ backgroundColor: 'grey.100' }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Caller</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Receiver</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Duration</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Date & Time</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', minWidth: 220 }}>Audio Call Recording</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {calls.map((call) => (
+                  <TableRow key={call.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>
+                        {call.callerName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {call.callerRole || 'Caller'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>
+                        {call.receiverName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {call.receiverRole || 'Receiver'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={call.callType === 'video' ? <VideocamIcon sx={{ fontSize: '14px !important' }} /> : <CallIcon sx={{ fontSize: '14px !important' }} />}
+                        label={call.callType === 'video' ? 'Video' : 'Audio'}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          backgroundColor: call.callType === 'video' ? '#f3e5f5' : '#e3f2fd',
+                          color: call.callType === 'video' ? '#7b1fa2' : '#1976d2',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {getCallStatusChip(call.status)}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>
+                        {call.durationFormatted || (call.duration ? `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : '00:00')}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption">
+                        {formatDateTime(call.createdAt || call.startedAt)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {call.recordingUrl ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <audio controls src={call.recordingUrl} style={{ height: 28, width: 200 }}>
+                            Your browser does not support the audio element.
+                          </audio>
+                          <Tooltip title="Open / Download Recording">
+                            <IconButton size="small" href={call.recordingUrl} target="_blank" rel="noopener noreferrer">
+                              <OpenInNewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          {call.callType === 'video' ? 'Video call (No audio file)' : 'No recording available'}
+                        </Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
 };
 
 interface JobRowProps {
@@ -991,6 +1134,11 @@ const JobRow: React.FC<JobRowProps> = ({
                       )}
                     </CardContent>
                   </Card>
+                </Grid>
+
+                {/* Step 6: In-App Call Tracking */}
+                <Grid item xs={12}>
+                  <JobCallsCard jobId={job.id} />
                 </Grid>
 
                 {/* 7. Complete Lifecycle Timestamps */}
