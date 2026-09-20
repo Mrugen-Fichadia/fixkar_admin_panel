@@ -62,20 +62,74 @@ const parseRecordTimestamp = (val: any): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const parseCallRecord = (docSnap: any): CallRecord => {
+export interface UserLookup {
+  name: string;
+  role?: string;
+  photo?: string;
+  phone?: string;
+}
+
+const parseCallRecord = (docSnap: any, usersMap?: Map<string, UserLookup>): CallRecord => {
   const data = docSnap.data() || {};
+  const callerId = data.callerId || data.caller_id || data.senderId || '';
+  const receiverId = data.receiverId || data.receiver_id || '';
+
+  const callerUser = usersMap ? (usersMap.get(callerId) || null) : null;
+  const receiverUser = usersMap ? (usersMap.get(receiverId) || null) : null;
+
+  // Resolve caller info
+  let callerName = callerUser?.name || data.callerName || data.caller_name || '';
+  let callerRole = callerUser?.role || data.callerRole || data.caller_role || '';
+  let callerPhoto = callerUser?.photo || data.callerPhoto || data.caller_photo || '';
+
+  // Resolve receiver info
+  let receiverName = receiverUser?.name || data.receiverName || data.receiver_name || '';
+  let receiverRole = receiverUser?.role || data.receiverRole || data.receiver_role || '';
+  let receiverPhoto = receiverUser?.photo || data.receiverPhoto || data.receiver_photo || '';
+
+  // Fallbacks if role is still empty
+  if (!callerRole) {
+    callerRole = data.callType === 'voice_note' ? 'Sender' : 'Customer';
+  }
+  if (!receiverRole) {
+    receiverRole = data.callType === 'voice_note' ? 'Recipient' : 'Worker';
+  }
+
+  // Fallback names ensuring distinct display if same or missing
+  if (!callerName || callerName === 'User') {
+    if (callerId) {
+      callerName = `${callerRole} (${callerId.slice(0, 6)})`;
+    } else {
+      callerName = callerRole;
+    }
+  }
+
+  if (!receiverName || receiverName === 'User') {
+    if (receiverId) {
+      receiverName = `${receiverRole} (${receiverId.slice(0, 6)})`;
+    } else {
+      receiverName = receiverRole;
+    }
+  }
+
+  // If caller and receiver have different IDs but resolved to the exact same name, clarify by role
+  if (callerId && receiverId && callerId !== receiverId && callerName === receiverName) {
+    callerName = `${callerName} (${callerRole})`;
+    receiverName = `${receiverName} (${receiverRole})`;
+  }
+
   return {
     id: docSnap.id,
     callId: data.callId || docSnap.id,
     jobId: data.jobId || data.job_id || '',
-    callerId: data.callerId || data.caller_id || data.senderId || '',
-    callerName: data.callerName || data.caller_name || 'User',
-    callerRole: data.callerRole || data.caller_role || 'Customer',
-    callerPhoto: data.callerPhoto || data.caller_photo || '',
-    receiverId: data.receiverId || data.receiver_id || '',
-    receiverName: data.receiverName || data.receiver_name || 'User',
-    receiverRole: data.receiverRole || data.receiver_role || 'Worker',
-    receiverPhoto: data.receiverPhoto || data.receiver_photo || '',
+    callerId,
+    callerName,
+    callerRole,
+    callerPhoto,
+    receiverId,
+    receiverName,
+    receiverRole,
+    receiverPhoto,
     callType: data.callType || data.call_type || 'audio',
     status: data.status || 'calling',
     videoPermission: data.videoPermission || data.video_permission || 'pending',
@@ -106,22 +160,29 @@ export const useCallRecords = () => {
     const callLogsRef = collection(db, 'call_logs');
     const callsRef = collection(db, 'calls');
     const voiceNotesRef = collection(db, 'voice_notes');
+    const usersRef = collection(db, 'users');
+    const karigarsRef = collection(db, 'karigars');
 
     const cache = {
-      callLogs: new Map<string, CallRecord>(),
-      calls: new Map<string, CallRecord>(),
-      voiceNotes: new Map<string, CallRecord>(),
+      callLogs: new Map<string, any>(),
+      calls: new Map<string, any>(),
+      voiceNotes: new Map<string, any>(),
+      users: new Map<string, UserLookup>(),
     };
 
     const updateMergedList = () => {
-      const mergedMap = new Map<string, CallRecord>();
+      const mergedMap = new Map<string, any>();
 
       // Order of precedence: call_logs > voice_notes > calls
       cache.calls.forEach((val, key) => mergedMap.set(key, val));
       cache.voiceNotes.forEach((val, key) => mergedMap.set(key, val));
       cache.callLogs.forEach((val, key) => mergedMap.set(key, val));
 
-      const list = Array.from(mergedMap.values());
+      const list: CallRecord[] = [];
+      mergedMap.forEach((docSnap) => {
+        list.push(parseCallRecord(docSnap, cache.users));
+      });
+
       list.sort((a, b) => {
         const timeA = parseRecordTimestamp(a.createdAt || a.startedAt);
         const timeB = parseRecordTimestamp(b.createdAt || b.startedAt);
@@ -133,12 +194,56 @@ export const useCallRecords = () => {
       setError(null);
     };
 
+    // Listen to users collection
+    const unsubUsers = onSnapshot(
+      usersRef,
+      (snapshot) => {
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const userObj: UserLookup = {
+            name: data.name || data.fullName || data.userName || '',
+            role: data.role || (data.isKarigar || data.service ? 'Worker' : 'Customer'),
+            photo: data.profilePic || data.profileImage || data.photoUrl || '',
+            phone: data.phone || data.phoneNumber || '',
+          };
+          cache.users.set(docSnap.id, userObj);
+          if (data.uid && data.uid !== docSnap.id) {
+            cache.users.set(data.uid, userObj);
+          }
+        });
+        updateMergedList();
+      },
+      (err) => console.warn('Users collection listener notice:', err)
+    );
+
+    // Listen to karigars collection
+    const unsubKarigars = onSnapshot(
+      karigarsRef,
+      (snapshot) => {
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const userObj: UserLookup = {
+            name: data.name || data.fullName || data.userName || '',
+            role: 'Worker',
+            photo: data.profilePic || data.profileImage || data.photoUrl || '',
+            phone: data.phone || data.phoneNumber || '',
+          };
+          cache.users.set(docSnap.id, userObj);
+          if (data.uid && data.uid !== docSnap.id) {
+            cache.users.set(data.uid, userObj);
+          }
+        });
+        updateMergedList();
+      },
+      (err) => console.warn('Karigars collection listener notice:', err)
+    );
+
     const unsubCallLogs = onSnapshot(
       callLogsRef,
       (snapshot) => {
         cache.callLogs.clear();
         snapshot.docs.forEach((docSnap) => {
-          cache.callLogs.set(docSnap.id, parseCallRecord(docSnap));
+          cache.callLogs.set(docSnap.id, docSnap);
         });
         updateMergedList();
       },
@@ -154,7 +259,7 @@ export const useCallRecords = () => {
       (snapshot) => {
         cache.calls.clear();
         snapshot.docs.forEach((docSnap) => {
-          cache.calls.set(docSnap.id, parseCallRecord(docSnap));
+          cache.calls.set(docSnap.id, docSnap);
         });
         updateMergedList();
       },
@@ -168,7 +273,7 @@ export const useCallRecords = () => {
       (snapshot) => {
         cache.voiceNotes.clear();
         snapshot.docs.forEach((docSnap) => {
-          cache.voiceNotes.set(docSnap.id, parseCallRecord(docSnap));
+          cache.voiceNotes.set(docSnap.id, docSnap);
         });
         updateMergedList();
       },
@@ -178,6 +283,8 @@ export const useCallRecords = () => {
     );
 
     return () => {
+      unsubUsers();
+      unsubKarigars();
       unsubCallLogs();
       unsubCalls();
       unsubVoiceNotes();
@@ -224,12 +331,42 @@ export const useJobCalls = (jobId?: string) => {
 
     setLoading(true);
     const callsRef = collection(db, 'call_logs');
+    const usersRef = collection(db, 'users');
+    const karigarsRef = collection(db, 'karigars');
     const q = query(callsRef, where('jobId', '==', jobId));
+
+    const usersMap = new Map<string, UserLookup>();
+
+    const unsubUsers = onSnapshot(usersRef, (snapshot) => {
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data();
+        const userObj: UserLookup = {
+          name: data.name || data.fullName || '',
+          role: data.role || 'Customer',
+          photo: data.profilePic || data.profileImage || '',
+        };
+        usersMap.set(docSnap.id, userObj);
+        if (data.uid) usersMap.set(data.uid, userObj);
+      });
+    });
+
+    const unsubKarigars = onSnapshot(karigarsRef, (snapshot) => {
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data();
+        const userObj: UserLookup = {
+          name: data.name || data.fullName || '',
+          role: 'Worker',
+          photo: data.profilePic || data.profileImage || '',
+        };
+        usersMap.set(docSnap.id, userObj);
+        if (data.uid) usersMap.set(data.uid, userObj);
+      });
+    });
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const list: CallRecord[] = snapshot.docs.map((docSnap) => parseCallRecord(docSnap));
+        const list: CallRecord[] = snapshot.docs.map((docSnap) => parseCallRecord(docSnap, usersMap));
 
         list.sort((a, b) => {
           const timeA = parseRecordTimestamp(a.createdAt || a.startedAt);
@@ -248,7 +385,11 @@ export const useJobCalls = (jobId?: string) => {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubUsers();
+      unsubKarigars();
+      unsubscribe();
+    };
   }, [jobId]);
 
   return { calls, loading, error };
