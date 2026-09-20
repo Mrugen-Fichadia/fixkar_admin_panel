@@ -29,6 +29,7 @@ import {
   Block as BlockIcon,
   Work as WorkIcon,
   SupportAgent as SupportAgentIcon,
+  GraphicEq as GraphicEqIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -197,6 +198,7 @@ const menuItems = [
   { text: 'User Master', icon: <PeopleIcon />, path: '/users' },
   { text: 'Karigar Master', icon: <BuildIcon />, path: '/karigars' },
   { text: 'Jobs', icon: <WorkIcon />, path: '/jobs' },
+  { text: 'Voice Notes & Calls', icon: <GraphicEqIcon />, path: '/voice-and-calls' },
   { text: 'Service Master', icon: <SettingsIcon />, path: '/services' },
   { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' },
   { text: 'Blocked Users', icon: <BlockIcon />, path: '/blocked-users' },
@@ -223,6 +225,7 @@ export default function DrawerLayout() {
     if (pathname.startsWith('/jobs')) return 'Jobs Management';
     if (pathname.startsWith('/users')) return 'Customer Management';
     if (pathname.startsWith('/karigars')) return 'Worker Management';
+    if (pathname.startsWith('/voice-and-calls')) return 'Voice Notes & Call Recordings';
     if (pathname.startsWith('/services')) return 'Service Categories';
     if (pathname.startsWith('/notifications')) return 'Warning Notifications';
     if (pathname.startsWith('/blocked-users')) return 'Blocked Users';

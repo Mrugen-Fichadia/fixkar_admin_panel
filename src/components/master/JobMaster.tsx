@@ -59,7 +59,7 @@ import {
   CurrencyRupee as CurrencyRupeeIcon,
 } from '@mui/icons-material';
 import { useJobs } from '../../hooks/useJobs';
-import { useJobCalls } from '../../hooks/useCalls';
+import { useJobCalls, getCallAudioUrl } from '../../hooks/useCalls';
 import {
   PhoneInTalk as PhoneInTalkIcon,
   Call as CallIcon,
@@ -283,22 +283,28 @@ const JobCallsCard: React.FC<{ jobId: string }> = ({ jobId }) => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {call.recordingUrl ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <audio controls src={call.recordingUrl} style={{ height: 28, width: 200 }}>
-                            Your browser does not support the audio element.
-                          </audio>
-                          <Tooltip title="Open / Download Recording">
-                            <IconButton size="small" href={call.recordingUrl} target="_blank" rel="noopener noreferrer">
-                              <OpenInNewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          {call.callType === 'video' ? 'Video call (No audio file)' : 'No recording available'}
-                        </Typography>
-                      )}
+                      {(() => {
+                        const audioUrl = getCallAudioUrl(call);
+                        if (audioUrl) {
+                          return (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <audio controls src={audioUrl} style={{ height: 28, width: 200 }}>
+                                Your browser does not support the audio element.
+                              </audio>
+                              <Tooltip title="Open / Download Recording">
+                                <IconButton size="small" href={audioUrl} target="_blank" rel="noopener noreferrer">
+                                  <OpenInNewIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          );
+                        }
+                        return (
+                          <Typography variant="caption" color="text.secondary">
+                            {call.callType === 'video' ? 'Video call (No audio file)' : 'No recording available'}
+                          </Typography>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 ))}

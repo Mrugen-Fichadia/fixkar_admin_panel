@@ -11,6 +11,7 @@ import JobMaster from './components/master/JobMaster';
 import HeatMap from './components/master/HeatMap';
 import Reports from './components/master/Reports';
 import HelpSupportMaster from './components/master/HelpSupportMaster';
+import VoiceAndCallMaster from './components/master/VoiceAndCallMaster';
 import { CircularProgress, Box } from '@mui/material';
 
 // A simple protected route component
@@ -83,6 +84,9 @@ function App() {
         <Route path="users" element={<UserMaster />} />
         <Route path="karigars" element={<KarigarMaster />} />
         <Route path="jobs" element={<JobMaster />} />
+        <Route path="voice-and-calls" element={<VoiceAndCallMaster />} />
+        <Route path="calls" element={<Navigate to="/voice-and-calls" replace />} />
+        <Route path="call-recordings" element={<Navigate to="/voice-and-calls" replace />} />
         <Route path="services" element={<ServiceMaster />} />
         <Route path="notifications" element={<NotificationMaster />} />
         <Route path="blocked-users" element={<BlockedUsersMaster />} />
